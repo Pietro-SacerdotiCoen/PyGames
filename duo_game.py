@@ -27,7 +27,6 @@ import os
 import math
 import random
 from typing import List
-
 # import basic pygame modules
 import pygame as pg
 
@@ -42,7 +41,6 @@ schermoy = 770
 SCREENRECT = pg.Rect(0, 0, schermox, schermoy)
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 ASTEROID_WAIT = 10
-SCORE = 0
 
 def load_image(file):
     """loads an image, prepares it for play"""
@@ -100,7 +98,7 @@ class Player(pg.sprite.Sprite):
         self.who = who
 
 
-    def move(self, directionx, directiony, coins, meteoriti): 
+    def move(self, directionx, directiony, coins, meteoriti, all): 
         if self.respawn == True and self.tempo == 0:
             self.vely = -100
             self.respawn = False
@@ -114,12 +112,26 @@ class Player(pg.sprite.Sprite):
                     self.start = False
             else:
                 if self.rect[0] > (schermox - 110) or self.rect[0] < 0:
-                # errore da risolvere
-                    self.alive = False
+                    self.score = self.score - 20
+                    num = range(0, 20)
+                    for x in num:
+                        coin = Coin(self, 1, 1, coins, all)
+                    self.rect[0] = 600
+                    self.rect[1] = 1000
+                    self.respawn = True
+                    self.tempo = 200
+                    self.start = True
                 
                 if self.rect[1] > (schermoy - 60) or self.rect[1] < 0:
-                # errore da risolvere
-                    self.alive = False
+                    self.score = self.score - 20
+                    num = range(0, 20)
+                    for x in num:
+                        coin = Coin(self, 1, 1, coins, all)
+                    self.rect[0] = 600
+                    self.rect[1] = 1000
+                    self.respawn = True
+                    self.tempo = 200
+                    self.start = True
  
     
             self.velx = (self.velx + directionx * self.acceleration) / self.attrito
@@ -140,39 +152,33 @@ class Player(pg.sprite.Sprite):
                         self.invincible = False
             self.image.set_alpha(self.intalpha)
 
-    def special(self, coins, meteoriti):          
-        for x in meteoriti:
-            dx = x.rect[0] - self.rect[0]
-            dy = x.rect[1] - self.rect[1]
-            dist = math.sqrt(dx*dx + dy*dy)
-            mag = 5000 / (dist * dist)
-            x.velx = x.velx + mag * (x.rect[0] - self.rect[0])
-            x.vely = x.vely + mag * (x.rect[1] - self.rect[1])
-            x.rotatevel = x.rotatevel / mag / 5
-        for x in coins:
-            dx = x.rect[0] - self.rect[0]
-            dy = x.rect[1] - self.rect[1]
-            dist = math.sqrt(dx*dx + dy*dy)
-            mag = 5000 / (dist * dist)
-            x.velx = x.velx + mag * (x.rect[0] - self.rect[0])
-            x.vely = x.vely + mag * (x.rect[1] - self.rect[1])
-            x.rotatevel = x.rotatevel / mag / 5
+
+    def special(self, rot): 
+        if self.start != True:         
+            for x in rot:
+                dx = x.rect[0] - self.rect[0]
+                dy = x.rect[1] - self.rect[1]
+                dist = math.sqrt(dx*dx + dy*dy)
+                mag = 5000 / (dist * dist)
+                x.velx = x.velx + mag * (x.rect[0] - self.rect[0])
+                x.vely = x.vely + mag * (x.rect[1] - self.rect[1])
+                x.rotatevel = max(min(x.rotatevel / mag / 5, 360), -360)
         
-    def input(self, coins, meteoriti, keystate, who):
+    def input(self, coins, meteoriti, keystate, who, all):
         if who == 0:
             if self.start == False:
                 directionx = (keystate[pg.K_KP_6] - keystate[pg.K_KP_4])
                 directiony = (keystate[pg.K_KP_5] - keystate[pg.K_KP_8])
-                self.move(directionx, directiony, coins, meteoriti)
+                self.move(directionx, directiony, coins, meteoriti, all)
             else:
-                self.move(0, 0, coins, meteoriti)
+                self.move(0, 0, coins, meteoriti, all)
         else:
             if self.start == False:
                 directionx = (keystate[pg.K_d] - keystate[pg.K_a])
                 directiony = (keystate[pg.K_s] - keystate[pg.K_w])
-                self.move(directionx, directiony, coins, meteoriti)
+                self.move(directionx, directiony, coins, meteoriti, all)
             else:
-                self.move(0, 0, coins, meteoriti)
+                self.move(0, 0, coins, meteoriti, all)
     
     def coll(self, coins, meteoriti, all):
         if self.invincible == False:
@@ -208,7 +214,7 @@ class Meteor(pg.sprite.Sprite):
         self.mask = pg.mask.from_surface(self.image)
 
     def update(self):
-        self.tilt = self.tilt + self.rotatevel
+        self.tilt = (self.tilt + self.rotatevel) % 360
         self.rect.move_ip(self.velx, self.vely)
         self.image = pg.transform.rotate(self.images[0], self.tilt)
         self.image = pg.transform.scale_by(self.image, self.grandezza)
@@ -252,7 +258,7 @@ class Coin(pg.sprite.Sprite):
 
 
     def update(self):
-        self.tilt = self.tilt + self.rotatevel
+        self.tilt = (self.tilt + self.rotatevel) % 360
         self.rect.move_ip(self.velx, self.vely)
         self.image = pg.transform.rotate(self.images[0], self.tilt)
         self.mask = pg.mask.from_surface(self.image)
@@ -260,25 +266,25 @@ class Coin(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center = c)
         if self.rect[1] > (schermoy + 100):
             self.kill()
-
 class Score(pg.sprite.Sprite):
     """to keep track of the score."""
 
-    def __init__(self, *groups):
+    def __init__(self, player, x, y, color, *groups):
         pg.sprite.Sprite.__init__(self, *groups)
         self.font = pg.font.Font(None, 40)
         self.font.set_italic(1)
-        self.color = "blue"
+        self.color = color
         self.lastscore = -1
-        self.update()
-        self.rect = self.image.get_rect().move(0, 0)
-
+        self.player = player
+        self.rect = pg.Rect(x, y, x, y)
+        
     def update(self, *args, **kwargs):
         """We only update the score in update() when it has changed."""
-        if SCORE != self.lastscore:
-            self.lastscore = SCORE
-            msg = f"{SCORE}"
+        if self.player.score != self.lastscore:
+            self.lastscore = self.player.score
+            msg = f"{self.player.score}"
             self.image = self.font.render(msg, 0, self.color)
+            self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
             
 
 
@@ -296,6 +302,8 @@ def main(winstyle=0):
     winstyle = 0  # |FULLSCREEN
     bestdepth = pg.display.mode_ok(SCREENRECT.size, winstyle, 32)
     screen = pg.display.set_mode(SCREENRECT.size, winstyle, bestdepth)
+
+    TEMPOs = 300 * 100
 
     # Load images, assign to sprite classes
     # (do this before the classes are used, after screen setup)
@@ -316,6 +324,7 @@ def main(winstyle=0):
     all = pg.sprite.RenderUpdates()
     meteoriti = pg.sprite.Group()
     coins = pg.sprite.Group()
+    rot = pg.sprite.Group()
     stella = pg.sprite.Group()
     numbers = range(0, 80)
     for x in numbers:
@@ -334,12 +343,15 @@ def main(winstyle=0):
     screen = pg.display.set_mode(SCREENRECT.size, winstyle | pg.FULLSCREEN, bestdepth)
     screen.blit(screen_backup, (0, 0))
     pg.display.flip()
-    global SCORE
     if pg.font:
-        all.add(Score(all))
+        all.add(Score(player1, 1320, 0, "blue", all))
+        all.add(Score(player2, 10, 0, "red", all))
     
     while player1.alive:
         
+        TEMPOs =  TEMPOs - pg.time.get_ticks()
+        print(TEMPOs)
+    
         # get input
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -347,19 +359,20 @@ def main(winstyle=0):
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_RALT:
-                player1.special(coins, meteoriti)
+                player1.special(rot)
             if event.type == pg.KEYDOWN and event.key == pg.K_LSHIFT:
-                player2.special(coins, meteoriti)
+                player2.special(rot)
+            
             
         #create meteor
         if count == ASTEROID_WAIT:
-            meteor = Meteor(all, meteoriti)
+            meteor = Meteor(all, meteoriti, rot)
             count = 0
         else:
             count = count + 1
 
         if count == ASTEROID_WAIT * 2: 
-            coin = Coin(player1, 0, 0, coins, all)
+            coin = Coin(player1, 0, 0, coins, all, rot)
             count = 0
         else:
             count = count + 1    
@@ -373,8 +386,8 @@ def main(winstyle=0):
 
         # handle player1 input
         keystate = pg.key.get_pressed()
-        player1.input(coins, meteoriti, keystate, 0)
-        player2.input(coins, meteoriti, keystate, 1)
+        player1.input(coins, meteoriti, keystate, 0, all)
+        player2.input(coins, meteoriti, keystate, 1, all)
         
         player1.coll(coins, meteoriti, all)
         player2.coll(coins, meteoriti, all)
