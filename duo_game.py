@@ -332,26 +332,7 @@ class Timer(pg.sprite.Sprite):
                 if self.time <= 0:
                     self.esci = True
 
-class Bar(pg.sprite.Sprite):
-    """to keep track of the score."""
-
-    def __init__(self, numero, *groups):
-        pg.sprite.Sprite.__init__(self, *groups)
-        self.image = self.images[0]
-        if numero < 15:
-            self.distx = numero * 7 + 20
-        else:
-            self.distx = numero * 7 + 1200
-        self.rect = self.image.get_rect(x = self.distx, y = 20)
-
         
-    def update(self, *args, **kwargs):
-        """We only update the score in update() when it has changed."""
-            
-        
-            
-            
-
 
 def main(winstyle=0):
     # Initialize pygame
@@ -381,8 +362,6 @@ def main(winstyle=0):
     Stella.images = [pg.transform.scale_by(img, 0.005)]
     img = load_image("coin.png")
     Coin.images = [pg.transform.scale_by(img, 0.05)]
-    img = load_image("red_square.png")
-    Bar.images = [pg.transform.scale_by(img, 0.05)]
 
     boom_sound = load_sound("booms.wav")
     coin_sound = load_sound("coin.mp3")
@@ -395,15 +374,12 @@ def main(winstyle=0):
     # Initialize Game Groups
     all = pg.sprite.RenderUpdates()
     meteoriti = pg.sprite.Group()
-    bars = pg.sprite.Group()
     coins = pg.sprite.Group()
     rot = pg.sprite.Group()
     stella = pg.sprite.Group()
     numbers = range(0, 80)
     for x in numbers:
         stelle = Stella(all, stella)
-    for x in range(0, 15 * 2):
-        block = Bar(x, all, bars)
 
     # Create Some Starting Values
     clock = pg.time.Clock()
