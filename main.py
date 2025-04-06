@@ -332,6 +332,34 @@ class Timer(pg.sprite.Sprite):
                 self.color = "red"
                 if self.time <= 0:
                     self.esci = True
+class Bar(pg.sprite.Sprite):
+    """to keep track of the score."""
+
+    def __init__(self, numero, posy, player, sound, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
+        self.image = self.images[0]
+        self.rect = self.image.get_rect(x = posy, y = 10 * (15 - numero) + 50)
+        self.numero = numero
+        self.player = player
+        self.sound = sound
+        self.new = False
+
+        
+    def update(self, *args, **kwargs):
+        """We only update the score in update() when it has changed."""
+        if self.player.specialtime == 15:
+            self.image = self.images[1]
+            if self.new == True:
+                self.sound.play()
+                self.new = False
+        else:
+            self.new = True
+            if self.numero <= self.player.specialtime:
+                self.image = self.images[0].copy()
+                self.image.set_alpha(255)
+            else:
+                self.image = self.images[0].copy()
+                self.image.set_alpha(0)
 
         
 
@@ -363,11 +391,15 @@ async def main(winstyle=0):
     Stella.images = [pg.transform.scale_by(img, 0.005)]
     img = load_image("coin.png")
     Coin.images = [pg.transform.scale_by(img, 0.05)]
+    img1 = load_image("white_square.png")
+    img2 = load_image("green_square.png")
+    Bar.images = [pg.transform.scale_by(img1, 0.09), pg.transform.scale_by(img2, 0.09)]
 
     boom_sound = load_sound("booms.ogg")
     coin_sound = load_sound("coin.ogg")
     special_sound = load_sound("special.ogg")
     click_sound = load_sound("click.ogg")
+    specialdone_sound = load_sound("special_done.mp3")
 
     # decorate the game window
     pg.mouse.set_visible(0)
@@ -376,11 +408,13 @@ async def main(winstyle=0):
     all = pg.sprite.RenderUpdates()
     meteoriti = pg.sprite.Group()
     coins = pg.sprite.Group()
+    barss = pg.sprite.Group()
     rot = pg.sprite.Group()
     stella = pg.sprite.Group()
     numbers = range(0, 80)
     for x in numbers:
         stelle = Stella(all, stella)
+    
 
     # Create Some Starting Values
     clock = pg.time.Clock()
@@ -392,6 +426,10 @@ async def main(winstyle=0):
     player2 = Player(1, all)
     time = Timer(TEMPOs, click_sound, player1, player2)
     all.add(time)
+    for x in range(0, 15):
+        bar = Bar(x, 1330, player1, specialdone_sound, all, barss)
+    for x in range(0, 15):
+        bar = Bar(x, 10, player2, specialdone_sound, all, barss)
 
     # Run our main loop whilst the player1 is alive.
     screen_backup = screen.copy()
