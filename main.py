@@ -399,7 +399,7 @@ async def main(winstyle=0):
     coin_sound = load_sound("coin.ogg")
     special_sound = load_sound("special.ogg")
     click_sound = load_sound("click.ogg")
-    specialdone_sound = load_sound("special_done.mp3")
+    specialdone_sound = load_sound("special_done.ogg")
 
     # decorate the game window
     pg.mouse.set_visible(0)
