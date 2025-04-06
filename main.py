@@ -26,6 +26,7 @@ Controls
 import os
 import math
 import random
+import asyncio
 from typing import List
 # import basic pygame modules
 import pygame as pg
@@ -334,7 +335,7 @@ class Timer(pg.sprite.Sprite):
 
         
 
-def main(winstyle=0):
+async def main(winstyle=0):
     # Initialize pygame
     if pg.get_sdl_version()[0] == 2:
         pg.mixer.pre_init(44100, 32, 2, 1024)
@@ -363,10 +364,10 @@ def main(winstyle=0):
     img = load_image("coin.png")
     Coin.images = [pg.transform.scale_by(img, 0.05)]
 
-    boom_sound = load_sound("booms.wav")
-    coin_sound = load_sound("coin.mp3")
-    special_sound = load_sound("special.wav")
-    click_sound = load_sound("click.mp3")
+    boom_sound = load_sound("booms.ogg")
+    coin_sound = load_sound("coin.ogg")
+    special_sound = load_sound("special.ogg")
+    click_sound = load_sound("click.ogg")
 
     # decorate the game window
     pg.mouse.set_visible(0)
@@ -461,10 +462,11 @@ def main(winstyle=0):
 
         # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
         clock.tick(40)
+        await asyncio.sleep(0)
 
 
 
 # call the "main" function if running this script
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
     pg.quit()
