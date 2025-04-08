@@ -42,7 +42,7 @@ schermoy = 770
 SCREENRECT = pg.Rect(0, 0, schermox, schermoy)
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 ASTEROID_WAIT = 10
-SECONDS = 90
+SECONDS = 4
 
 def load_image(file):
     """loads an image, prepares it for play"""
@@ -78,18 +78,17 @@ def load_sound(file):
 class Player(pg.sprite.Sprite):
     """Representing the player1 as a moon buggy type car."""
 
-    def __init__(self, who, *groups):
+    def __init__(self, who, spawnpoint, *groups):
         pg.sprite.Sprite.__init__(self, *groups)
         self.image = self.images[who]
-        self.rect = self.image.get_rect(midbottom=SCREENRECT.midbottom)
+        self.rect = self.image.get_rect(x = spawnpoint, y = 1000)
         self.velx = random.randint(0, 5)
-        self.vely = -70
+        self.vely = -90
         self.attrito = 1.15
         self.rotvel = 1
         self.acceleration = 3
         self.score = 0
         self.mask = pg.mask.from_surface(self.image)
-        self.rect.move_ip(0, 200)
         self.start = True
         self.respawn = False
         self.tempo = -1
@@ -99,6 +98,7 @@ class Player(pg.sprite.Sprite):
         self.score = 0
         self.who = who
         self.specialtime = 15
+        self.spawnpoint = spawnpoint
 
 
     def move(self, directionx, directiony, coins, meteoriti, all): 
@@ -165,11 +165,10 @@ class Player(pg.sprite.Sprite):
     def coll(self, coins, meteoriti, all, boom_sound, coin_sound):
         if self.invincible == False:
             for x in pg.sprite.spritecollide(self, meteoriti, 1, pg.sprite.collide_mask):
-                num = range(0, min(10, self.score))
+                num = range(0, 20)
                 for x in num:
                     coin = Coin(self, 1, 1, coins, all)
-                self.score = self.score - min(10, self.score)
-                self.rect[0] = 600
+                self.rect[0] = self.spawnpoint
                 self.rect[1] = 1000
                 self.respawn = True
                 self.tempo = 200
@@ -182,11 +181,10 @@ class Player(pg.sprite.Sprite):
             
             if self.start == False:
                 if self.rect[0] > (schermox - 110) or self.rect[0] < 0:
-                    num = range(0, min(10, self.score))
+                    num = range(0, 20)
                     for x in num:
                         coin = Coin(self, 1, 1, coins, all)
-                    self.score = self.score - min(10, self.score)
-                    self.rect[0] = 600
+                    self.rect[0] = self.spawnpoint
                     self.rect[1] = 1000
                     self.respawn = True
                     self.tempo = 200
@@ -194,11 +192,10 @@ class Player(pg.sprite.Sprite):
                     boom_sound.play()
                 
                 if self.rect[1] > (schermoy - 60) or self.rect[1] < 0:
-                    num = range(0, min(10, self.score))
+                    num = range(0, 20)
                     for x in num:
                         coin = Coin(self, 1, 1, coins, all)
-                    self.score = self.score - min(10, self.score)
-                    self.rect[0] = 600
+                    self.rect[0] = self.spawnpoint
                     self.rect[1] = 1000
                     self.respawn = True
                     self.tempo = 200
@@ -315,6 +312,10 @@ class Timer(pg.sprite.Sprite):
         
     def update(self, *args, **kwargs):
         """We only update the score in update() when it has changed."""
+        if self.time % 60 < 10:
+            self.comma = ":0"
+        else:
+            self.comma = ":"
         msg = f"{math.floor(self.time / 60)}{self.comma}{self.time % 60}"
         self.image = self.font.render(msg, 0, self.color)
         self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
@@ -360,8 +361,6 @@ class Bar(pg.sprite.Sprite):
             else:
                 self.image = self.images[0].copy()
                 self.image.set_alpha(0)
-
-        
 
 async def main(winstyle=0):
     # Initialize pygame
@@ -422,8 +421,8 @@ async def main(winstyle=0):
     coin_count = 0
 
     # initialize our starting sprites
-    player1 = Player(0, all)
-    player2 = Player(1, all)
+    player1 = Player(0, 900, all)
+    player2 = Player(1, 300, all)
     time = Timer(TEMPOs, click_sound, player1, player2)
     all.add(time)
     for x in range(0, 15):
@@ -441,68 +440,87 @@ async def main(winstyle=0):
         all.add(Score(player2, 10, 0, "red", all))
 
     start_time = pg.time.get_ticks()
-    
+    drag = 500
     while player1.alive:
+        if time.esci == False:
+            TEMPOs =  SECONDS * 1000 - pg.time.get_ticks() + start_time
+            time.aggiorna(TEMPOs)
         
-        TEMPOs =  SECONDS * 1000 - pg.time.get_ticks() + start_time
-        time.aggiorna(TEMPOs)
-    
-        # get input
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                return
-            if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
-                return
-            if event.type == pg.KEYDOWN and event.key == pg.K_RALT:
-                player1.special(rot, special_sound)
-            if event.type == pg.KEYDOWN and event.key == pg.K_LSHIFT:
-                player2.special(rot, special_sound)
-            
-            
-        #create meteor
-        if ast_count >= ASTEROID_WAIT:
-            meteor = Meteor(all, meteoriti, rot)
-            ast_count = 0
-        else:
-            ast_count += 1
+            # get input
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    return
+                if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+                    return
+                if event.type == pg.KEYDOWN and event.key == pg.K_RALT:
+                    player1.special(rot, special_sound)
+                if event.type == pg.KEYDOWN and event.key == pg.K_LSHIFT:
+                    player2.special(rot, special_sound)
+                
+                
+            #create meteor
+            if ast_count >= ASTEROID_WAIT:
+                meteor = Meteor(all, meteoriti, rot)
+                ast_count = 0
+            else:
+                ast_count += 1
 
-        if coin_count >= ASTEROID_WAIT * 2: 
-            coin = Coin(player1, 0, 0, coins, all, rot)
-            coin_count = 0
+            if coin_count >= ASTEROID_WAIT * 2: 
+                coin = Coin(player1, 0, 0, coins, all, rot)
+                coin_count = 0
+            else:
+                coin_count += 1 
+
+            player1.coll(coins, meteoriti, all, boom_sound, coin_sound)
+            player2.coll(coins, meteoriti, all, boom_sound, coin_sound)
+
         else:
-            coin_count += 1    
+            drag = drag * 0.9
+            player1.velx = player1.velx  + ((700 - player1.rect[0]) / drag)
+            player1.vely = player1.vely  + ((400 - player1.rect[1]) / drag)
+            player2.velx = player2.velx  + ((700 - player2.rect[0]) / drag)
+            player2.vely = player2.vely  + ((400 - player2.rect[1]) / drag)
+            for x in meteoriti:
+                x.velx = x.velx  + ((700 - x.rect[0]) / drag)
+                x.vely = x.vely  + ((400 - x.rect[1]) / drag)
+            for x in coins:
+                x.velx = x.velx  + ((700 - x.rect[0]) / drag)
+                x.vely = x.vely  + ((400 - x.rect[1]) / drag)
 
         # clear/erase the last drawn sprites
         background = pg.Surface(SCREENRECT.size)
         all.clear(screen, background)
 
         # update all the sprites
-        all.update()
-
-        # handle player1 input
-        keystate = pg.key.get_pressed()
-        player1.input(coins, meteoriti, keystate, 0, all)
-        player2.input(coins, meteoriti, keystate, 1, all)
-        
-        player1.coll(coins, meteoriti, all, boom_sound, coin_sound)
-        player2.coll(coins, meteoriti, all, boom_sound, coin_sound)
+        if time.esci == False:
+            all.update()
+            # handle player1 input
+            keystate = pg.key.get_pressed()
+            player1.input(coins, meteoriti, keystate, 0, all)
+            player2.input(coins, meteoriti, keystate, 1, all)
+        else:
+            player1.rect[0] += player1.velx
+            player1.rect[1] += player1.vely
+            player2.rect[0] += player2.velx 
+            player2.rect[1] += player2.vely 
+            for x in coins:
+                x.rect[0] += x.velx
+                x.rect[1] += x.vely
+            for x in meteoriti:
+                x.rect[0] += x.velx
+                x.rect[1] += x.vely
 
         # draw the scene
         dirty = all.draw(screen)
         #pg.draw.rect(screen, (255, 0, 0), player1.rect, width = 1)
         pg.display.update(dirty)
 
-        if time.esci == True:
-            pg.time.delay(3000)
-            return
-
 
 
         # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
         clock.tick(40)
         await asyncio.sleep(0)
-
-
+    
 
 # call the "main" function if running this script
 if __name__ == "__main__":
