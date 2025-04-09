@@ -154,9 +154,12 @@ class Player(pg.sprite.Sprite):
                 if len(joysticks) == 2:
                     if joysticks[0].get_button(0):
                         self.special(rot, special_sound)
-                        print("x")
                     horiz_move = joysticks[0].get_axis(0)
+                    if horiz_move < 0.1 and horiz_move > -0.1:
+                        horiz_move = 0
                     vert_move = joysticks[0].get_axis(1)
+                    if vert_move < 0.1 and vert_move > -0.1:
+                        vert_move = 0
                     self.move(horiz_move, vert_move, coins, meteoriti, all)
                 else:
                     directionx = (keystate[pg.K_KP_6] - keystate[pg.K_KP_4])
@@ -170,9 +173,12 @@ class Player(pg.sprite.Sprite):
                 if len(joysticks) == 2:
                     if joysticks[1].get_button(0):
                         self.special(rot, special_sound)
-                        print("x")
                     horiz_move = joysticks[1].get_axis(0)
+                    if horiz_move < 0.1 and horiz_move > -0.1:
+                        horiz_move = 0
                     vert_move = joysticks[1].get_axis(1)
+                    if vert_move < 0.1 and vert_move > -0.1:
+                        vert_move = 0
                     self.move(horiz_move, vert_move, coins, meteoriti, all)
                 else:
                     directionx = (keystate[pg.K_d] - keystate[pg.K_a])
@@ -520,7 +526,7 @@ async def main(winstyle=0):
         # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
         clock.tick(40)
         await asyncio.sleep(0)
-    pg.time.delay(10)
+    pg.time.delay(10000)
     
 
 # call the "main" function if running this script
