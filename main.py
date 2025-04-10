@@ -162,8 +162,8 @@ class Player(pg.sprite.Sprite):
                         vert_move = 0
                     self.move(horiz_move, vert_move, coins, meteoriti, all)
                 else:
-                    directionx = (keystate[pg.K_KP_6] - keystate[pg.K_KP_4])
-                    directiony = (keystate[pg.K_KP_5] - keystate[pg.K_KP_8])
+                    directionx = (keystate[pg.K_RIGHT] - keystate[pg.K_LEFT])
+                    directiony = (keystate[pg.K_DOWN] - keystate[pg.K_UP])
                     self.move(directionx, directiony, coins, meteoriti, all)
 
             else:
