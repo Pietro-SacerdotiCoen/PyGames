@@ -41,9 +41,9 @@ schermoy = 770
 SCREENRECT = pg.Rect(0, 0, schermox, schermoy)
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 IDLE = 0
-RUNNING = 1
-WALKING = 2
-JUMPING = 3
+RUNNING = 8
+JUMPING = 16
+WALKING = 24
 
 def load_image(file):
     """loads an image, prepares it for play"""
@@ -90,7 +90,7 @@ class Player(pg.sprite.Sprite):
         self.current_image = 0
         self.walk_frame = 0
         self.velx = 30
-        self.vely = 10
+        self.vely = 15
         self.directionx = 0
         self.idle_frame = 0
         self.y = 400
@@ -109,50 +109,30 @@ class Player(pg.sprite.Sprite):
         else:
             self.idle()
 
-        if self.facing:
-            self.image = pg.transform.flip(self.image, 1, 0)
+        self.next_frame()
+
+        if self.mode == JUMPING and self.current_image == self.mode:
+            self.mode = IDLE
 
     def run (self):
 
         self.rect[0] += self.velx * self.directionx
         self.rect[1] += self.vely * self.directiony
-        
-        self.image = self.images[self.current_image]
 
         self.facing = self.directionx < 0
-        
-        self.current_image += 1
-        if self.current_image >= 16:
-            self.current_image = 8
     
     def idle (self):
-        self.image = self.images[self.current_image]
-        self.current_image += 1
-        if self.current_image >= 8:
-            self.current_image = 0
+        pass
     
     def jump (self):
-            self.image = self.images[self.current_image]
             if self.current_image > 18:
                 if self.facing:
                     self.rect[0] += 30
                 else:
                     self.rect[0] -= 30
 
-            self.current_image += 1
-            if self.current_image >= 24:
-                self.current_image = 0
-                self.mode = IDLE
-
     def walk (self):
-        print(self.current_image)
         self.rect[1] += self.vely * self.directiony
-        
-        self.image = self.images[self.current_image]
-        
-        self.current_image += 1
-        if self.current_image >= 32:
-            self.current_image = 24
 
     def input(self, keystate, all):
         self.directionx = (keystate[pg.K_d] - keystate[pg.K_a])
@@ -175,6 +155,15 @@ class Player(pg.sprite.Sprite):
         if keystate[pg.K_SPACE] == 1 and (self.mode == IDLE or self.mode == RUNNING):
             self.current_image = 16
             self.mode = JUMPING
+
+    def next_frame (self):
+        self.image = self.images[self.current_image]
+        self.current_image += 1
+        if self.current_image >= self.mode + 8:
+            self.current_image = self.mode
+
+        if self.facing:
+            self.image = pg.transform.flip(self.image, 1, 0)
 
 class Sfondo(pg.sprite.Sprite):
     """to keep track of the score."""
