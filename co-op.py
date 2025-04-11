@@ -30,7 +30,6 @@ import asyncio
 from typing import List
 # import basic pygame modules
 import pygame as pg
-pg.joystick.init()
 # see if we can load more than standard BMP
 if not pg.image.get_extended():
     raise SystemExit("Sorry, extended image module required")
@@ -41,7 +40,10 @@ schermox = 1400
 schermoy = 770
 SCREENRECT = pg.Rect(0, 0, schermox, schermoy)
 main_dir = os.path.split(os.path.abspath(__file__))[0]
-joysticks = [pg.joystick.Joystick(x) for x in range(pg.joystick.get_count())]
+IDLE = 0
+RUNNING = 1
+WALKING = 2
+JUMPING = 3
 
 def load_image(file):
     """loads an image, prepares it for play"""
@@ -83,30 +85,96 @@ class Player(pg.sprite.Sprite):
 
     def __init__(self, *groups):
         pg.sprite.Sprite.__init__(self, *groups)
-        self.image = self.images[7]
+        self.image = self.images[0]
         self.rect = self.image.get_rect(x = 400, y = 400)
         self.current_image = 0
         self.walk_frame = 0
-        self.velx = 20
+        self.velx = 30
+        self.vely = 10
         self.directionx = 0
+        self.idle_frame = 0
+        self.y = 400
+        self.mode = IDLE
+        self.facing = False
 
 
     def move(self, all):
-        if self.directionx != 0:
-            if self.walk_frame == 0:
-                self.walk_frame = 0
-                self.current_image += self.directionx
-                if self.current_image >= 8:
-                    self.current_image = 0
-                if self.current_image < 0:
-                    self.current_image = 7
-                self.image = self.images[self.current_image]
-            else:
-                self.walk_frame += 1
 
-            self.rect[0] += self.velx * self.directionx
+        if self.mode == JUMPING:
+            self.jump()
+        elif self.mode == RUNNING:
+            self.run()
+        elif self.mode == WALKING:
+            self.walk()
+        else:
+            self.idle()
+
+        if self.facing:
+            self.image = pg.transform.flip(self.image, 1, 0)
+
+    def run (self):
+
+        self.rect[0] += self.velx * self.directionx
+        self.rect[1] += self.vely * self.directiony
+        
+        self.image = self.images[self.current_image]
+
+        self.facing = self.directionx < 0
+        
+        self.current_image += 1
+        if self.current_image >= 16:
+            self.current_image = 8
+    
+    def idle (self):
+        self.image = self.images[self.current_image]
+        self.current_image += 1
+        if self.current_image >= 8:
+            self.current_image = 0
+    
+    def jump (self):
+            self.image = self.images[self.current_image]
+            if self.current_image > 18:
+                if self.facing:
+                    self.rect[0] += 30
+                else:
+                    self.rect[0] -= 30
+
+            self.current_image += 1
+            if self.current_image >= 24:
+                self.current_image = 0
+                self.mode = IDLE
+
+    def walk (self):
+        print(self.current_image)
+        self.rect[1] += self.vely * self.directiony
+        
+        self.image = self.images[self.current_image]
+        
+        self.current_image += 1
+        if self.current_image >= 32:
+            self.current_image = 24
+
     def input(self, keystate, all):
         self.directionx = (keystate[pg.K_d] - keystate[pg.K_a])
+        self.directiony = (keystate[pg.K_s] - keystate[pg.K_w])
+        if self.directionx != 0 and (self.mode == IDLE or self.mode == WALKING):
+            self.current_image = 8
+            self.mode = RUNNING
+        elif self.directionx == 0 and self.mode != JUMPING:
+            if self.directiony == 0:
+                self.mode = IDLE
+            else:
+                if self.mode != WALKING:
+                    self.current_image = 24
+                self.mode = WALKING
+
+        if self.directiony != 0 and self.mode == IDLE:
+            self.current_image = 24
+            self.mode = WALKING
+
+        if keystate[pg.K_SPACE] == 1 and (self.mode == IDLE or self.mode == RUNNING):
+            self.current_image = 16
+            self.mode = JUMPING
 
 class Sfondo(pg.sprite.Sprite):
     """to keep track of the score."""
@@ -115,7 +183,6 @@ class Sfondo(pg.sprite.Sprite):
         pg.sprite.Sprite.__init__(self, *groups)
         self.image = self.images[0]
         self.rect = self.image.get_rect(x = 0, y = 0)
-        self.image.set_alpha(255)
 
 
 async def main(winstyle=0):
@@ -135,14 +202,14 @@ async def main(winstyle=0):
 
     # Load images, assign to sprite classes
     # (do this before the classes are used, after screen setup)
-    sfondo_image = pg.image.load("sfondi/PNG/Battleground1/Bright/Battleground1.png")
+    sfondo_image = pg.image.load("sfondi/PNG/Battleground2/Bright/Battleground2.png")
     Sfondo.images = [pg.transform.scale_by(sfondo_image, 0.72)]
 
-    ninjas_sheet = pg.image.load("ninjas/Kunoichi/Run.png")
-    frames = []
     Player.images = []
-    for x in range(0, 8):
-        Player.images.append(pg.transform.scale_by((get_image(ninjas_sheet, 128, 128, x * 128, 0)), 2))
+    for y in ["Idle.png", "Run.png", "Jump.png", "Walk.png"]:
+        ninjas_idle_sheet = pg.image.load("ninjas/Kunoichi/" + y)
+        for x in range(0, 8):
+            Player.images.append(pg.transform.scale_by((get_image(ninjas_idle_sheet, 128, 128, x * 128, 0)), 2))
 
 
     # decorate the game window
@@ -170,15 +237,17 @@ async def main(winstyle=0):
     
         # get input
         for event in pg.event.get():
-            if event.type == pg.JOYDEVICEADDED:
-                print(event)
-                joy = pg.joystick.Joystick(event.device_index)
-                joysticks.append(joy)
             if event.type == pg.QUIT:
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 return
 
+                
+        keystate = pg.key.get_pressed()
+        
+        player1.input(keystate, all)
+        player1.move(all)
+        
         # clear/erase the last drawn sprites
         background = pg.Surface(SCREENRECT.size)
         all.clear(screen, background)
@@ -186,16 +255,13 @@ async def main(winstyle=0):
         # update all the sprites
         all.update()
         # handle player1 input
-        keystate = pg.key.get_pressed()
+        
         #player1.input(coins, meteoriti, keystate, 0, all)
 
         # draw the scene
         dirty = all.draw(screen)
         #pg.draw.rect(screen, (255, 0, 0), player1.rect, width = 1)
         pg.display.update(dirty)
-        
-        player1.input(keystate, all)
-        player1.move(all)
 
 
 
@@ -204,7 +270,7 @@ async def main(winstyle=0):
         await asyncio.sleep(0)
     
 
-# call the "main" function if running this script
+# call the "main" function if mode this script
 if __name__ == "__main__":
     asyncio.run(main())
     pg.quit()
