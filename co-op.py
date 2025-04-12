@@ -137,24 +137,22 @@ class Player(pg.sprite.Sprite):
     def input(self, keystate, all):
         self.directionx = (keystate[pg.K_d] - keystate[pg.K_a])
         self.directiony = (keystate[pg.K_s] - keystate[pg.K_w])
-        if self.directionx != 0 and (self.mode == IDLE or self.mode == WALKING):
-            self.current_image = 8
-            self.mode = RUNNING
-        elif self.directionx == 0 and self.mode != JUMPING:
-            if self.directiony == 0:
-                self.mode = IDLE
-            else:
-                if self.mode != WALKING:
-                    self.current_image = 24
-                self.mode = WALKING
 
-        if self.directiony != 0 and self.mode == IDLE:
-            self.current_image = 24
-            self.mode = WALKING
+        if keystate[pg.K_SPACE] == 1:
+            next = JUMPING
+        elif self.directionx != 0:
+            next = RUNNING
+        elif self.directiony != 0:
+            next = WALKING
+        else:
+            next = IDLE
 
-        if keystate[pg.K_SPACE] == 1 and (self.mode == IDLE or self.mode == RUNNING):
-            self.current_image = 16
-            self.mode = JUMPING
+        if self.mode != next and self.mode != JUMPING:
+            self.mode = next
+            self.current_image = next
+
+        
+
 
     def next_frame (self):
         self.image = self.images[self.current_image]
